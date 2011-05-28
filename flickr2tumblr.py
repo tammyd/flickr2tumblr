@@ -1,39 +1,102 @@
 #!/usr/bin/python
 
 import flickrapi
-from tumblr import Api
 import sys
 import ConfigParser
+from optparse import OptionParser
+from tumblr import Api
 
-cfgParser = ConfigParser.ConfigParser()
-cfgParser.read('config.ini')
-cfgSettings = {'flickr':['api_key'], 'tumblr':['blog','email','password']}
-config = {}
-for cat,key in cfgSettings.iteritems():
-    for value in key:
-        try:
-            config["%s_%s" % (cat,value)] = cfgParser.get(cat,value)
-        except:
-            print "Error in config file - missing or invalid %s %s" % (cat,value)
-            sys.exit(-1)
+## Setup the command line options. Note that the command line
+## takes precedence over anything in the config file
 
-if len(sys.argv) < 3:
-    print "Usage: flickr2tumblr <photo_id> <photo_size> [tags]"
-    sys.exit(-1) 
+usage = """Usage: %prog [options] flickr_photo_id
 
-photo_id = sys.argv[1]
-photo_size = sys.argv[2]
+All required options (except for the flickr_photo_id) can be specified either
+via the command line or config file."""
+  
+## Because we are also using a config file but want command line args
+## to take precendemce, we can't use optionParsers default value functions,
+## as there's no way to tell if the resulting object is populated with user or
+## default values.
+defaults = {'photo_size': 'Medium',
+            'post_state': 'draft'}
+required = ['api_key','blog','email','password','photo_size','post_state','post_type']
+  
+parser = OptionParser(usage=usage)
+parser.add_option('-c', '--config', action='store', type='string', dest="config_file",
+                  help="Config file. Use to store tumblr and flickr options. Default = %default. Required.", default='flickr2tumblr.ini')
+parser.add_option('-z', '--size', dest="photo_size", help="Flickr photo size. Default = %s. Required." % defaults['photo_size'])
+parser.add_option('-k', '--key', dest="api_key", help="Flickr api key. Required. ")
+parser.add_option('-b', '--blog', dest="blog", help="Tumblr blog name; the @tumblr.com is not necessary. Required.")
+parser.add_option('-e', '--email', dest="email",help="Tumblr email login. Required.")
+parser.add_option('-p', '--password', dest="password", help="Tumblr password. Required ")
+parser.add_option('-s', '--state', dest='post_state', help='Tumblr post state. Default = %s. Required.' % defaults['post_state'])
+parser.add_option('-g', '--tags', dest='tags', help='Tumblr post tags. Optional.')
+parser.add_option('-n', '--caption', dest='caption', help='Tumblr post caption. Optional.')
 
-flickr = flickrapi.FlickrAPI(config['flickr_api_key'])
+(options, args) = parser.parse_args()
 
-infoElem = flickr.photos_getInfo(photo_id=photo_id)
+## only required command line arg is photo_id
+try:
+    options.__dict__['photo_id'] = args[0]
+except:
+    print "ERROR: photo_id must be specified\n"
+    parser.print_help()
+    sys.exit(-1)
+    
+
+## Read the config file. Note that no error is thrown if the file doesn't
+## exist; the parser just behaves as if the config file is empty.
+cfgOptions = {}
+if options.config_file is not None:
+    cfgParser = ConfigParser.ConfigParser()
+    cfgParser.read(options.config_file)
+    # we really don't care what section an option is defined under in the config
+    # file, it's more for human organization than anything. 
+    for option,value in options.__dict__.iteritems():
+        if value is None:
+            try:
+                # option not defined yet, check config file
+                value = cfgParser.get('flickr2tumblr', option)
+            except:
+                # option not in config file either, do we have a default?
+                if option in defaults:
+                    value = defaults[option]
+                else:
+                    value = None
+                   
+            if value is not None:
+                # we either found the value in the config file, or it has a default
+                # save the config to be added to options object later
+                cfgOptions[option] = value
+                
+## add the config/default options to the options object so everything is in
+## one place
+for option,value in cfgOptions.iteritems():
+    options.__dict__[option] = value
+    
+## ensure all required elements exist
+die = False
+for option,value in options.__dict__.iteritems():
+    if option in required:
+        if value is None:
+            print "ERROR: %s is required and must either be specified as an argument or in the config file" % option
+            die = True
+if die:
+    print "";
+    parser.print_help()
+    sys.exit(-1)
+
+## Use flickr api to get photo info. API Key required - see http://www.flickr.com/services/apps/create/apply/    
+flickr = flickrapi.FlickrAPI(options.api_key)
+infoElem = flickr.photos_getInfo(photo_id=options.photo_id)
 if infoElem.attrib['stat']!='ok':
     print "Unable to get info from photo_id", photo_id
     sys.exit(-1)
     
 url = infoElem.find('photo').find('urls').findall('url')[0].text
 
-sizesElem = flickr.photos_getSizes(photo_id=photo_id)
+sizesElem = flickr.photos_getSizes(photo_id=options.photo_id)
 if sizesElem.attrib['stat']!='ok':
     print "Unable to get sizes for photo_id", photo_id
     sys.exit(-1)
@@ -41,32 +104,28 @@ if sizesElem.attrib['stat']!='ok':
 sizes = sizesElem.find('sizes').findall('size')
 source = None
 for size in sizes:
-    if size.attrib['label'] == photo_size:
+    if size.attrib['label'] == options.photo_size:
         source = size.attrib['source']
   
 if source is None:
-    print photo_size,"is a not defined size for photo",photo_id
-    die(-1)
+    print "ERROR: %s is a not defined size for %s" % (options.photo_size, options.photo_id)
+    sys.exit(-1)
     
-
+## Build up tge arguments to post to the Tumblr api
 tumblrArgs = {}
-tumblrArgs['state'] = 'queue'
+tumblrArgs['state'] = options.post_state
 tumblrArgs['type'] = 'photo'
 tumblrArgs['source'] = source
 tumblrArgs['click-through-url'] = url
-tumblrArgs['tags'] = 'cat,"black cat"'
-try:
-    tags = sys.argv[3]
-    tumblrArgs['tags'] = tumblrArgs['tags'] + "," + tags
-except:
-    #do nothing
-    tumblrArgs['tags'] = tumblrArgs['tags']
+if options.tags is not None:
+    tumblrArgs['tags'] = options.tags
+
     
-api = Api(config['tumblr_blog'],config['tumblr_email'],config['tumblr_password'])
+api = Api(options.blog,options.email,options.password)
 try:
     post = api._write(tumblrArgs)
-    print "Post Queued!"
+    print "Photo post saved as %s!" % (options.post_state)
 except:
-    print "Error queuing post"
+    print "Error saving post"
     
     
