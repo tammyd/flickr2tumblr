@@ -33,3 +33,5 @@ Config
 * The default config file is flickr2tumblr.ini, but this can be changed via by setting
   --config==[config file_name]
 * command-line arguments always take precendence over the configuration file.
+* For more information on the tumblr post options, see the API documentation
+  here: http://www.tumblr.com/docs/en/api#api_write
