@@ -1,0 +1,35 @@
+flickr2tumblr
+
+A quick python script that takes a flickr photo id and turns it into a tumblr
+blog post.
+
+Installation
+--------------------------------------------------------------------------------
+* As this is a python script, I assume you already have python running and a
+  vague idea of what you're doing. If not, start here: http://www.python.org/
+* Install the flickrapi package from here: http://stuvel.eu/flickrapi
+* Install the python-tumblr package from here: http://code.google.com/p/python-tumblr/
+    * You'll need simplejson http://code.google.com/p/simplejson/
+    * I actually had to tweak tumblr.py to get it to work for me. See
+      tumblr.py.patch for changes, applied to tumblr.py, version 0.1
+    
+Usage
+--------------------------------------------------------------------------------
+* Run ./tumblr2flickr.py --help 
+
+Setup
+--------------------------------------------------------------------------------
+* In order to use this script, you'll need
+  * Your own flickr API key: http://www.flickr.com/services/apps/create/apply/
+  * A tumblr blog
+* Each of these should be configured in the configuration file - see below
+
+Config
+--------------------------------------------------------------------------------
+* Every option (with the exception of the actual flickr photo id) can be specified
+  as either a command-line option or via the config file
+* This allows you to save your flickr api key, tumblr login credentials and any
+  other frequently used settings so that you're not typing them out everytime.
+* The default config file is flickr2tumblr.ini, but this can be changed via by setting
+  --config==[config file_name]
+* command-line arguments always take precendence over the configuration file.
