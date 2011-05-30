@@ -1,0 +1,11 @@
+--- /Users/tammy/Downloads/python-tumblr-0.1/build/lib/tumblr.py	2008-06-08 14:53:16.000000000 -0700
++++ /Library/Python/2.6/site-packages/tumblr.py	2011-05-22 14:04:15.000000000 -0700
+@@ -213,7 +213,7 @@
+ 		newid = None
+ 		try: 
+ 			urlopen(req)
+-			raise TumblrError("Error writing post")
++#			raise TumblrError("Error writing post")
+ 
+ 		except HTTPError, e:
+ 			if 201 == e.code:
