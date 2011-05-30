@@ -56,9 +56,7 @@ except:
 cfgOptions = {}
 if options.config_file is not None:
     cfgParser = ConfigParser.ConfigParser()
-    cfgParser.read(options.config_file)
-    # we really don't care what section an option is defined under in the config
-    # file, it's more for human organization than anything. 
+    cfgParser.read(options.config_file) 
     for option,value in options.__dict__.iteritems():
         if value is None:
             try:
@@ -72,12 +70,12 @@ if options.config_file is not None:
                     value = None
                    
             if value is not None:
-                # we either found the value in the config file, or it has a default
-                # save the config to be added to options object later
+                # we either found the value in the config file, or it has a default.
+                # Save the config to be added to options object later
+                # as we can't change something that's being currently iterated over.
                 cfgOptions[option] = value
                 
-## add the config/default options to the options object so everything is in
-## one place
+## add the config/default options to the options object so everything is in one place
 for option,value in cfgOptions.iteritems():
     options.__dict__[option] = value
     
@@ -87,7 +85,7 @@ for option,value in options.__dict__.iteritems():
     if option in required:
         if value is None:
             print "ERROR: %s is required and must either be specified as an argument or in the config file" % option
-            die = True
+            die = True # wait to exist so we can inform the user of all missing elements
 if die:
     print "";
     parser.print_help()
@@ -96,8 +94,12 @@ if die:
 ## Use flickr api to get photo info. API Key required - see http://www.flickr.com/services/apps/create/apply/    
 flickr = flickrapi.FlickrAPI(options.api_key)
 infoElem = flickr.photos_getInfo(photo_id=options.photo_id)
-if infoElem.attrib['stat']!='ok':
-    print "Unable to get info from photo_id", photo_id
+try:
+    if infoElem.attrib['stat']!='ok':
+        print "Unable to get info from photo_id", photo_id
+        sys.exit(-1)
+except:
+    print "Error with flickr api - is the api key correct?"
     sys.exit(-1)
 
 ## this is the photo's main url, use as click-through link of post    
@@ -105,8 +107,12 @@ url = infoElem.find('photo').find('urls').findall('url')[0].text
 
 ## look for the actual image file in the specified size
 sizesElem = flickr.photos_getSizes(photo_id=options.photo_id)
-if sizesElem.attrib['stat']!='ok':
-    print "Unable to get sizes for photo_id", photo_id
+try:
+    if sizesElem.attrib['stat']!='ok':
+        print "Unable to get sizes for photo_id", photo_id
+        sys.exit(-1)
+except:
+    print "Something went wrong with the flickr api; Unable to retrieve sizes"
     sys.exit(-1)
 
 sizes = sizesElem.find('sizes').findall('size')
@@ -148,5 +154,6 @@ try:
     print "Photo post saved as %s!" % (options.post_state)
 except:
     print "Error saving post"
+    sys.exit(-1)
     
     
