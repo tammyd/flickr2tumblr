@@ -27,7 +27,7 @@ parser.add_option('-c', '--config', action='store', type='string', dest="config_
                   help="Config file. Use to store tumblr and flickr options. Default = %default. Required.", default='flickr2tumblr.ini')
 parser.add_option('-z', '--size', dest="photo_size", help="Flickr photo size. Default = %s. Required." % defaults['photo_size'])
 parser.add_option('-k', '--key', dest="api_key", help="Flickr api key. Required. ")
-parser.add_option('-b', '--blog', dest="blog", help="Tumblr blog name; the @tumblr.com is not necessary. Required.")
+parser.add_option('-b', '--blog', dest="blog", help="Tumblr blog name; blogname@tumblr.com. Required.")
 parser.add_option('-e', '--email', dest="email",help="Tumblr email login. Required.")
 parser.add_option('-p', '--password', dest="password", help="Tumblr password. Required ")
 parser.add_option('-s', '--state', dest='post_state', help='Tumblr post state. Default = %s. Required.' % defaults['post_state'])
