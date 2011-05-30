@@ -33,6 +33,12 @@ parser.add_option('-p', '--password', dest="password", help="Tumblr password. Re
 parser.add_option('-s', '--state', dest='post_state', help='Tumblr post state. Default = %s. Required.' % defaults['post_state'])
 parser.add_option('-g', '--tags', dest='tags', help='Tumblr post tags. Optional.')
 parser.add_option('-n', '--caption', dest='caption', help='Tumblr post caption. Optional.')
+parser.add_option('-d', '--date', dest='date', help="Tumblr post date. Optional.")
+parser.add_option('-u', '--group', dest='group', help="Tumblr post group (ie secondary tumblr blog) to post to as well. Optional.")
+parser.add_option('-w', '--twitter', dest='twitter', help='Custom mesage to post to predefined twitter account with post. Optional')
+parser.add_option('-l', '--slug', dest='slug', help="Custom string to appear in the tumblr post's url. Optional")
+parser.add_option('-r', '--private', action='store_true', dest='private', help='Make tumblr post private if set. Optional.');
+
 
 (options, args) = parser.parse_args()
 
@@ -93,9 +99,11 @@ infoElem = flickr.photos_getInfo(photo_id=options.photo_id)
 if infoElem.attrib['stat']!='ok':
     print "Unable to get info from photo_id", photo_id
     sys.exit(-1)
-    
+
+## this is the photo's main url, use as click-through link of post    
 url = infoElem.find('photo').find('urls').findall('url')[0].text
 
+## look for the actual image file in the specified size
 sizesElem = flickr.photos_getSizes(photo_id=options.photo_id)
 if sizesElem.attrib['stat']!='ok':
     print "Unable to get sizes for photo_id", photo_id
@@ -111,7 +119,7 @@ if source is None:
     print "ERROR: %s is a not defined size for %s" % (options.photo_size, options.photo_id)
     sys.exit(-1)
     
-## Build up tge arguments to post to the Tumblr api
+## Build up the arguments to post to the Tumblr api
 tumblrArgs = {}
 tumblrArgs['state'] = options.post_state
 tumblrArgs['type'] = 'photo'
@@ -119,8 +127,21 @@ tumblrArgs['source'] = source
 tumblrArgs['click-through-url'] = url
 if options.tags is not None:
     tumblrArgs['tags'] = options.tags
+if options.group is not None:
+    tumblrArgs['group'] = options.group
+if options.twitter is not None:
+    tumblrArgs['send-to-twitter'] = options.twitter
+if options.slug is not None:
+    tumblrArgs['slug'] = options.slug
+if options.date is not None:
+    if options.post_state == 'queue':
+        tumblrArgs['publish-on'] = options.date
+    else:
+        tumblrArgs['date'] = options.date
+if options.private == True:
+    tumblrArgs['private'] = 1
 
-    
+## send the arguments tp tumblr via the write api    
 api = Api(options.blog,options.email,options.password)
 try:
     post = api._write(tumblrArgs)
