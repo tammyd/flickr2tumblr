@@ -44,12 +44,16 @@ parser.add_option('-r', '--private', action='store_true', dest='private', help='
 
 ## only required command line arg is photo_id
 try:
-    options.__dict__['photo_id'] = args[0]
+    options.__dict__['photo_id'] = args
 except:
     print "ERROR: photo_id must be specified\n"
     parser.print_help()
     sys.exit(-1)
     
+if len(options.photo_id) < 1:
+    print "ERROR: photo_id must be specified\n"
+    parser.print_help()
+    sys.exit(-1)	
 
 ## Read the config file. Note that no error is thrown if the file doesn't
 ## exist; the parser just behaves as if the config file is empty.
@@ -91,69 +95,73 @@ if die:
     parser.print_help()
     sys.exit(-1)
 
-## Use flickr api to get photo info. API Key required - see http://www.flickr.com/services/apps/create/apply/    
-flickr = flickrapi.FlickrAPI(options.api_key)
-infoElem = flickr.photos_getInfo(photo_id=options.photo_id)
-try:
-    if infoElem.attrib['stat']!='ok':
-        print "Unable to get info from photo_id", photo_id
-        sys.exit(-1)
-except:
-    print "Error with flickr api - is the api key correct?"
-    sys.exit(-1)
+## Use flickr api to get photo info. API Key required - see http://www.flickr.com/services/apps/create/apply/   
 
-## this is the photo's main url, use as click-through link of post    
-url = infoElem.find('photo').find('urls').findall('url')[0].text
 
-## look for the actual image file in the specified size
-sizesElem = flickr.photos_getSizes(photo_id=options.photo_id)
-try:
-    if sizesElem.attrib['stat']!='ok':
-        print "Unable to get sizes for photo_id", photo_id
-        sys.exit(-1)
-except:
-    print "Something went wrong with the flickr api; Unable to retrieve sizes"
-    sys.exit(-1)
-
-sizes = sizesElem.find('sizes').findall('size')
-source = None
-for size in sizes:
-    if size.attrib['label'] == options.photo_size:
-        source = size.attrib['source']
-  
-if source is None:
-    print "ERROR: %s is a not defined size for %s" % (options.photo_size, options.photo_id)
-    sys.exit(-1)
-    
-## Build up the arguments to post to the Tumblr api
-tumblrArgs = {}
-tumblrArgs['state'] = options.post_state
-tumblrArgs['type'] = 'photo'
-tumblrArgs['source'] = source
-tumblrArgs['click-through-url'] = url
-if options.tags is not None:
-    tumblrArgs['tags'] = options.tags
-if options.group is not None:
-    tumblrArgs['group'] = options.group
-if options.twitter is not None:
-    tumblrArgs['send-to-twitter'] = options.twitter
-if options.slug is not None:
-    tumblrArgs['slug'] = options.slug
-if options.date is not None:
-    if options.post_state == 'queue':
-        tumblrArgs['publish-on'] = options.date
-    else:
-        tumblrArgs['date'] = options.date
-if options.private == True:
-    tumblrArgs['private'] = 1
-
-## send the arguments tp tumblr via the write api    
-api = Api(options.blog,options.email,options.password)
-try:
-    post = api._write(tumblrArgs)
-    print "Photo post saved as %s!" % (options.post_state)
-except:
-    print "Error saving post"
-    sys.exit(-1)
+for photo_id in options.photo_id:
+ 
+	flickr = flickrapi.FlickrAPI(options.api_key)
+	infoElem = flickr.photos_getInfo(photo_id=photo_id)
+	try:
+	    if infoElem.attrib['stat']!='ok':
+	        print "Unable to get info from photo_id", photo_id
+	        sys.exit(-1)
+	except:
+	    print "Error with flickr api - is the api key correct?"
+	    sys.exit(-1)
+	
+	## this is the photo's main url, use as click-through link of post    
+	url = infoElem.find('photo').find('urls').findall('url')[0].text
+	
+	## look for the actual image file in the specified size
+	sizesElem = flickr.photos_getSizes(photo_id=photo_id)
+	try:
+	    if sizesElem.attrib['stat']!='ok':
+	        print "Unable to get sizes for photo_id", photo_id
+	        sys.exit(-1)
+	except:
+	    print "Something went wrong with the flickr api; Unable to retrieve sizes"
+	    sys.exit(-1)
+	
+	sizes = sizesElem.find('sizes').findall('size')
+	source = None
+	for size in sizes:
+	    if size.attrib['label'] == options.photo_size:
+	        source = size.attrib['source']
+	  
+	if source is None:
+	    print "ERROR: %s is a not defined size for %s" % (options.photo_size, photo_id)
+	    sys.exit(-1)
+	    
+	## Build up the arguments to post to the Tumblr api
+	tumblrArgs = {}
+	tumblrArgs['state'] = options.post_state
+	tumblrArgs['type'] = 'photo'
+	tumblrArgs['source'] = source
+	tumblrArgs['click-through-url'] = url
+	if options.tags is not None:
+	    tumblrArgs['tags'] = options.tags
+	if options.group is not None:
+	    tumblrArgs['group'] = options.group
+	if options.twitter is not None:
+	    tumblrArgs['send-to-twitter'] = options.twitter
+	if options.slug is not None:
+	    tumblrArgs['slug'] = options.slug
+	if options.date is not None:
+	    if options.post_state == 'queue':
+	        tumblrArgs['publish-on'] = options.date
+	    else:
+	        tumblrArgs['date'] = options.date
+	if options.private == True:
+	    tumblrArgs['private'] = 1
+	
+	## send the arguments tp tumblr via the write api    
+	api = Api(options.blog,options.email,options.password)
+	try:
+	    post = api._write(tumblrArgs)
+	    print "Photo id %s post saved as %s!" % (photo_id, options.post_state)
+	except:
+	    print "Error saving post. ", sys.exc_info()[0]
+	    sys.exit(-1)
     
     
