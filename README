@@ -8,10 +8,20 @@ Installation
 * As this is a python script, I assume you already have python running and a
   vague idea of what you're doing. If not, start here: http://www.python.org/
 * Install the flickrapi package from here: http://stuvel.eu/flickrapi
+  $ easy_install flickrapi
 * Install the python-tumblr package from here: http://code.google.com/p/python-tumblr/
-    * You'll need simplejson http://code.google.com/p/simplejson/
-    * I actually had to tweak tumblr.py to get it to work for me. See
-      tumblr.py.patch for changes, applied to tumblr.py, version 0.1
+    * Install simplejson: http://code.google.com/p/simplejson/
+      $ easy_install simplejson
+    * Download and unzip python-tumblr 
+      $ wget http://python-tumblr.googlecode.com/files/python-tumblr-0.1.zip
+      $ unzip python-tumblr-0.1.zip
+      $ cd python-tumblr-0.1
+
+      At this point I had to patch tumblr.py to work. It's a hack, I never
+      really bothered to figure out why it was failing. See
+      tumblr.py.patch for changes, applied to tumblr.py, version 0.1      
+
+      $ python setup.py install
     
 Usage
 --------------------------------------------------------------------------------
