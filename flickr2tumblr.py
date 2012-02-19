@@ -100,15 +100,21 @@ if die:
 
 for photo_id in options.photo_id:
  
-	flickr = flickrapi.FlickrAPI(options.api_key)
-	infoElem = flickr.photos_getInfo(photo_id=photo_id)
-	try:
-	    if infoElem.attrib['stat']!='ok':
-	        print "Unable to get info from photo_id", photo_id
-	        sys.exit(-1)
+ 	try:
+	    flickr = flickrapi.FlickrAPI(options.api_key)
 	except:
 	    print "Error with flickr api - is the api key correct?"
 	    sys.exit(-1)
+
+	try:
+	    infoElem = flickr.photos_getInfo(photo_id=photo_id)
+	    if infoElem.attrib['stat']!='ok':
+	        print "Unable to get info from photo_id.", photo_id
+	        sys.exit(-1)
+	except:
+	    print "Invalid photo id ", photo_id;
+	    sys.exit(-1)
+
 	
 	## this is the photo's main url, use as click-through link of post    
 	url = infoElem.find('photo').find('urls').findall('url')[0].text
